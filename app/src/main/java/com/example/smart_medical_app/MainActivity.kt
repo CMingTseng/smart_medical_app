@@ -7,7 +7,7 @@ import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
 import android.view.*
-import org.eclipse.paho.android.service.MqttAndroidClient
+import info.mqtt.android.service.MqttAndroidClient
 import org.eclipse.paho.client.mqttv3.*
 import java.lang.Exception
 
@@ -45,7 +45,7 @@ class MainActivity : AppCompatActivity() {
                 override fun onSuccess(asyncActionToken: IMqttToken?) {
                     Log.e("JAMES", "Connection success")
                     MQTT_subscribe("medical/#")
-                    MQTT_publish("medical/#", "hello!world")
+                    MQTT_publish("medical/fell_down_alarm", "hello!world")
 
                 }
 
@@ -142,6 +142,7 @@ class MainActivity : AppCompatActivity() {
             e.printStackTrace()
         }
         MQTT_connect(this)
+
     }
 
     override fun onDestroy() {

@@ -14,7 +14,6 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.Smart_medical_app">
-        <service android:name="org.eclipse.paho.android.service.MqttService" />
 
         <activity
             android:name=".MainActivity"
