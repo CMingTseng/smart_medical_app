@@ -1,23 +1,31 @@
 package com.example.smart_medical_app
 
+import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.content.Context
-import android.media.MediaPlayer
-import android.net.Uri
-import androidx.appcompat.app.AppCompatActivity
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
-import android.view.*
+import android.view.SurfaceView
+import android.view.WindowManager
+import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
+import com.pedro.vlc.VlcListener
+import com.pedro.vlc.VlcVideoLibrary
 import info.mqtt.android.service.MqttAndroidClient
 import org.eclipse.paho.client.mqttv3.*
-import java.lang.Exception
+import java.util.*
 
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : AppCompatActivity(),VlcListener {
     private var uri:String="rtsp://192.168.0.126:8554/cam"
-    private lateinit var surfaceHolder_monitor:SurfaceHolder
+    private lateinit var vlcVideoLibrary: VlcVideoLibrary
     private lateinit var surfaceView_monitor: SurfaceView
-    private lateinit var player: MediaPlayer
     private lateinit var mqttClient:MqttAndroidClient
+    private lateinit var fell_down_notification:Notification
+    private lateinit var notificationManager: NotificationManager
+    private val options:Array<String> = arrayOf(":fullscreen")
 
     private fun MQTT_connect(context:Context){
         val serverURI="ssl://95cdf9091ac24bf5931fb43b3260cac8.s1.eu.hivemq.cloud:8883"
@@ -27,6 +35,9 @@ class MainActivity : AppCompatActivity() {
             override fun messageArrived(topic: String?, message: MqttMessage?) {
                 recCount = recCount + 1
                 Log.e("JAMES", "Received message ${recCount}: ${message.toString()} from topic: $topic")
+                if (message.toString()=="fell_Down"){
+                    notificationManager.notify(0,fell_down_notification)
+                }
             }
 
             override fun connectionLost(cause: Throwable?) {
@@ -110,47 +121,56 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun notification_Setting(){
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel= NotificationChannel("fell_down_alarm","Fell_Down_Alarm",NotificationManager.IMPORTANCE_HIGH)
+            val fell_down_builder =Notification.Builder(this,"fell_down_alarm")
+            fell_down_builder.setSmallIcon(R.drawable.ic_baseline_medical_services_24)
+                .setContentTitle("緊急通知")
+                .setContentText("有人跌倒了，請注意監控")
+                .setWhen(System.currentTimeMillis())
+                .setAutoCancel(true)
+            fell_down_notification=fell_down_builder.build()
+            notificationManager=getSystemService(NOTIFICATION_SERVICE)as NotificationManager
+            notificationManager.createNotificationChannel(channel)
+        }
+    }
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         Log.e("JAMES","onCreate")
         setContentView(R.layout.activity_main)
-        surfaceView_monitor=findViewById(R.id.surfaceView_monitor)
-        player = MediaPlayer()
-        try {
-            player.setDataSource(this, Uri.parse(uri))
-            surfaceHolder_monitor=surfaceView_monitor.holder
-            surfaceHolder_monitor.addCallback(object:SurfaceHolder.Callback{
-                override fun surfaceCreated(holder: SurfaceHolder) {
-                    player.setDisplay(holder)
-                }
-                override fun surfaceChanged(p0: SurfaceHolder, p1: Int, p2: Int, p3: Int) {
-
-                }
-                override fun surfaceDestroyed(p0: SurfaceHolder) {
-                }
-
-            })
-            player.prepare()
-            player.setOnPreparedListener(object:MediaPlayer.OnPreparedListener{
-                override fun onPrepared(p0: MediaPlayer?) {
-                    player.start()
-                    player.isLooping=true
-                }
-
-            })
-        }catch (e:Exception){
-            e.printStackTrace()
-        }
+        notification_Setting()
         MQTT_connect(this)
-
+        surfaceView_monitor=findViewById(R.id.surfaceView_monitor)
+        vlcVideoLibrary= VlcVideoLibrary(this,this,surfaceView_monitor)
     }
 
+    override fun onResume() {
+        super.onResume()
+        Log.e("JAMES","onResume")
+        vlcVideoLibrary.play(uri)
+        vlcVideoLibrary.setOptions(options.toMutableList())
+    }
     override fun onDestroy() {
         Log.e("JAMES","onDestroy")
-        if(player.isPlaying){
-            player.stop()
-        }
-        player.release()
+        vlcVideoLibrary.stop()
         super.onDestroy()
     }
+
+    override fun onBackPressed() {
+        super.onBackPressed()
+        Log.e("JAMES","onBackPressed")
+        vlcVideoLibrary.stop()
+        finish()
+    }
+    override fun onComplete() {
+        Toast.makeText(this,"playing",Toast.LENGTH_SHORT).show()
+    }
+
+    override fun onError() {
+        Toast.makeText(this,"Error, make sure your endpoint is correct",Toast.LENGTH_SHORT).show()
+        vlcVideoLibrary.stop()
+    }
+
 }
