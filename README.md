@@ -164,9 +164,15 @@ I have followed steps suggested by the Android developer site:
 1.	Copy .aar file into the libs folder of the app
 2.	File -> Project Structure... -> Dependencies
 
+![image](https://github.com/JamesTsao15/smart_medical_app/blob/master/note_image/arr_file_setting1.png)
+
 3.	Click on "+" icon and select JR/AAR Dependency and select app module
+
+![image](https://github.com/JamesTsao15/smart_medical_app/blob/master/note_image/arr_file_setting2.png)
  
 4.	Add .aar file path in step 1.
+
+![image](https://github.com/JamesTsao15/smart_medical_app/blob/master/note_image/arr_file_setting3.png)
  
 5.	Check your app’s build.gradle file to confirm a declaration.
 
